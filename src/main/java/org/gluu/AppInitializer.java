@@ -5,7 +5,6 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.gluu.app.service.StartupService;
-import org.gluu.persist.couchbase.impl.CouchbaseEntryManager;
 import org.jboss.logging.Logger;
 
 import io.quarkus.runtime.ShutdownEvent;
@@ -25,6 +24,7 @@ public class AppInitializer {
 	void onStart(@Observes StartupEvent ev) {
 		LOGGER.info("The application is starting...");
 		LOGGER.info("=========================================");
+		
 		startupService.sayHello();
 		LOGGER.info("=========================================");
 	}
