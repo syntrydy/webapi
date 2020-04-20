@@ -7,10 +7,10 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.inject.Instance;
+import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.ws.rs.Produces;
 
 import org.gluu.app.service.StartupService;
 import org.gluu.exception.OxIntializationException;
@@ -20,7 +20,6 @@ import org.gluu.oxtrust.service.EncryptionService;
 import org.gluu.oxtrust.service.cdi.event.CentralLdap;
 import org.gluu.oxtrust.service.custom.LdapCentralConfigurationReload;
 import org.gluu.persist.PersistenceEntryManager;
-import org.gluu.persist.ldap.impl.LdapEntryManager;
 import org.gluu.persist.model.PersistenceConfiguration;
 import org.gluu.service.cdi.event.LdapConfigurationReload;
 import org.gluu.service.cdi.util.CdiUtil;
@@ -117,32 +116,9 @@ public class AppInitializer {
 		return persistenceEntryManager;
 	}
 
-	@Produces
-	@ApplicationScoped
-	@Named(ApplicationFactory.PERSISTENCE_CENTRAL_ENTRY_MANAGER_NAME)
-	@CentralLdap
-	public PersistenceEntryManager createCentralLdapEntryManager() {
-		if (!((configurationFactory.getLdapCentralConfiguration() != null)
-				&& configurationFactory.getAppConfiguration().isUpdateStatus())) {
-			return new LdapEntryManager();
-		}
-		FileConfiguration ldapCentralConfig = configurationFactory.getLdapCentralConfiguration();
-		Properties centralConnectionProperties = (Properties) ldapCentralConfig.getProperties();
-		EncryptionService securityService = encryptionServiceInstance.get();
-		Properties decryptedCentralConnectionProperties = securityService
-				.decryptProperties(centralConnectionProperties);
-		PersistenceEntryManager centralLdapEntryManager = applicationFactory.getPersistenceEntryManagerFactory()
-				.createEntryManager(decryptedCentralConnectionProperties);
-		log.info("Created {}: {}", new Object[] { ApplicationFactory.PERSISTENCE_CENTRAL_ENTRY_MANAGER_NAME,
-				centralLdapEntryManager.getOperationService() });
-		return centralLdapEntryManager;
-	}
-
 	public void recreatePersistanceEntryManager(@Observes @LdapConfigurationReload String event) {
 		recreatePersistanceEntryManagerImpl(persistenceEntryManagerInstance,
 				ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME);
-		recreatePersistanceEntryManagerImpl(persistenceEntryManagerInstance,
-				ApplicationFactory.PERSISTENCE_METRIC_ENTRY_MANAGER_NAME, ReportMetric.Literal.INSTANCE);
 	}
 
 	protected void recreatePersistanceEntryManagerImpl(Instance<PersistenceEntryManager> instance,
@@ -213,7 +189,7 @@ public class AppInitializer {
 		log.info("The application is starting...");
 		log.info("Initializing application services");
 		configurationFactory.create();
-		PersistenceEntryManager localLdapEntryManager = persistenceEntryManagerInstance.get();
+		persistenceEntryManagerInstance.get();
 		configurationFactory.initTimer();
 		log.info("=========================================");
 		startupService.sayHello();
