@@ -12,9 +12,10 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.gluu.app.service.StartupService;
+import org.gluu.configuration.ConfigurationFactory;
 import org.gluu.exception.OxIntializationException;
-import org.gluu.oxtrust.config.ConfigurationFactory;
 import org.gluu.oxtrust.service.ApplicationFactory;
 import org.gluu.oxtrust.service.EncryptionService;
 import org.gluu.oxtrust.service.cdi.event.CentralLdap;
@@ -45,35 +46,38 @@ public class AppInitializer {
 
 	@Inject
 	@Named(ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME)
-	private Instance<PersistenceEntryManager> persistenceEntryManagerInstance;
+	Instance<PersistenceEntryManager> persistenceEntryManagerInstance;
 
 	@Inject
 	@Named(ApplicationFactory.PERSISTENCE_METRIC_ENTRY_MANAGER_NAME)
 	@ReportMetric
-	private Instance<PersistenceEntryManager> persistenceMetricEntryManagerInstance;
+	Instance<PersistenceEntryManager> persistenceMetricEntryManagerInstance;
 
 	@Inject
 	@Named(ApplicationFactory.PERSISTENCE_CENTRAL_ENTRY_MANAGER_NAME)
 	@CentralLdap
-	private Instance<PersistenceEntryManager> persistenceCentralEntryManagerInstance;
+	Instance<PersistenceEntryManager> persistenceCentralEntryManagerInstance;
 
 	@Inject
-	private Instance<EncryptionService> encryptionServiceInstance;
+	Instance<EncryptionService> encryptionServiceInstance;
 
 	@Inject
-	private ApplicationFactory applicationFactory;
+	ApplicationFactory applicationFactory;
 
 	@Inject
-	private ConfigurationFactory configurationFactory;
+	ConfigurationFactory configurationFactory;
 
 	@Inject
-	private BeanManager beanManager;
+	BeanManager beanManager;
+
+	private String baseDir;
 
 	@PostConstruct
 	public void createApplicationComponents() {
-		
+		baseDir = ConfigProvider.getConfig().getValue("gluu.base", String.class);
+		System.setProperty("gluu.base", baseDir);
 	}
-	
+
 	protected Properties preparePersistanceProperties() {
 		PersistenceConfiguration persistenceConfiguration = this.configurationFactory.getPersistenceConfiguration();
 		FileConfiguration persistenceConfig = persistenceConfiguration.getConfiguration();
@@ -132,8 +136,6 @@ public class AppInitializer {
 				ldapEntryManager.getOperationService());
 	}
 
-	
-
 	public void recreateCentralPersistanceEntryManager(@Observes @LdapCentralConfigurationReload String event) {
 		PersistenceEntryManager oldCentralLdapEntryManager = CdiUtil.getContextBean(beanManager,
 				PersistenceEntryManager.class, ApplicationFactory.PERSISTENCE_CENTRAL_ENTRY_MANAGER_NAME);
@@ -155,9 +157,10 @@ public class AppInitializer {
 					oldPersistenceEntryManager, oldPersistenceEntryManager.getOperationService());
 		}
 	}
+
 	@Produces
 	@ApplicationScoped
-	@AlternativePriority(value=1)
+	@AlternativePriority(value = 1)
 	@Named(ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME)
 	public PersistenceEntryManager createPersistenceEntryManager() {
 		Properties connectionProperties = preparePersistanceProperties();
@@ -186,14 +189,13 @@ public class AppInitializer {
 	}
 
 	void onStart(@Observes StartupEvent ev) {
-		log.info("The application is starting...");
-		log.info("Initializing application services");
+		log.info("========================STARTING API APPLICATION=============================");
+		System.setProperty("gluu.base", baseDir);
 		configurationFactory.create();
 		persistenceEntryManagerInstance.get();
 		configurationFactory.initTimer();
-		log.info("=========================================");
 		startupService.sayHello();
-		log.info("=========================================");
+		log.info("========================STARTUP PROCESS COMPLETED==========================");
 	}
 
 	void onStop(@Observes ShutdownEvent ev) {
