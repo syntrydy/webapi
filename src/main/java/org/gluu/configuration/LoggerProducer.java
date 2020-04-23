@@ -1,4 +1,4 @@
-package org.gluu;
+package org.gluu.configuration;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;

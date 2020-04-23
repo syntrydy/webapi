@@ -13,7 +13,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.gluu.app.service.StartupService;
 import org.gluu.configuration.ConfigurationFactory;
 import org.gluu.exception.OxIntializationException;
 import org.gluu.oxtrust.service.ApplicationFactory;
@@ -40,9 +39,6 @@ public class AppInitializer {
 
 	@Inject
 	Logger log;
-
-	@Inject
-	StartupService startupService;
 
 	@Inject
 	@Named(ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME)
@@ -194,7 +190,6 @@ public class AppInitializer {
 		configurationFactory.create();
 		persistenceEntryManagerInstance.get();
 		configurationFactory.initTimer();
-		startupService.sayHello();
 		log.info("========================STARTUP PROCESS COMPLETED==========================");
 	}
 
