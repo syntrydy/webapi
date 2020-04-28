@@ -156,6 +156,23 @@
 			<groupId>io.quarkus</groupId>
 			<artifactId>quarkus-smallrye-openapi</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-simple -->
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- dependencies added to make the native image build pass -->
+		<dependency>
+			<groupId>com.lmax</groupId>
+			<artifactId>disruptor</artifactId>
+			<version>3.4.2</version>
+		</dependency>
+
 	</dependencies>
 	<repositories>
 		<repository>
@@ -169,19 +186,9 @@
 			<url>https://ox.gluu.org/maven</url>
 		</repository>
 		<repository>
-			<id>bouncycastle</id>
-			<name>Bouncy Castle</name>
-			<url>https://repo2.maven.org/maven2/org/bouncycastle</url>
-		</repository>
-		<repository>
 			<id>mavencentral</id>
 			<name>maven central</name>
 			<url>https://repo1.maven.org/maven2</url>
-		</repository>
-		<repository>
-			<id>build.shibboleth.net</id>
-			<name>shibboleth releases</name>
-			<url>https://build.shibboleth.net/nexus/content/repositories/releases</url>
 		</repository>
 	</repositories>
 	<build>
