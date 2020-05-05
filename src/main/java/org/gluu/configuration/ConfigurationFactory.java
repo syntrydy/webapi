@@ -15,12 +15,12 @@ import javax.inject.Named;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.microprofile.config.ConfigProvider;
-import org.gluu.config.oxtrust.AppConfiguration;
-import org.gluu.config.oxtrust.AttributeResolverConfiguration;
-import org.gluu.config.oxtrust.CacheRefreshConfiguration;
+//import org.gluu.config.oxtrust.AppConfiguration;
+//import org.gluu.config.oxtrust.AttributeResolverConfiguration;
+//import org.gluu.config.oxtrust.CacheRefreshConfiguration;
 import org.gluu.config.oxtrust.Configuration;
 import org.gluu.config.oxtrust.ImportPersonConfig;
-import org.gluu.config.oxtrust.LdapOxTrustConfiguration;
+//import org.gluu.config.oxtrust.LdapOxTrustConfiguration;
 import org.gluu.exception.ConfigurationException;
 import org.gluu.oxtrust.service.ApplicationFactory;
 import org.gluu.oxtrust.service.custom.LdapCentralConfigurationReload;
@@ -56,8 +56,8 @@ public class ConfigurationFactory {
 	@Inject
 	Event<TimerEvent> timerEvent;
 
-	@Inject
-	Event<AppConfiguration> configurationUpdateEvent;
+	/*@Inject
+	Event<AppConfiguration> configurationUpdateEvent;*/
 
 	@Inject
 	Event<String> event;
@@ -112,10 +112,10 @@ public class ConfigurationFactory {
 	private PersistenceConfiguration persistenceConfiguration;
 
 	private FileConfiguration ldapCentralConfiguration;
-	private AppConfiguration appConfiguration;
+/*	private AppConfiguration appConfiguration;
 	private CacheRefreshConfiguration cacheRefreshConfiguration;
 	private ImportPersonConfig importPersonConfig;
-	private AttributeResolverConfiguration attributeResolverConfiguration;
+	private AttributeResolverConfiguration attributeResolverConfiguration;*/
 	private String cryptoConfigurationSalt;
 
 	private AtomicBoolean isActive;
@@ -136,7 +136,7 @@ public class ConfigurationFactory {
 					.loadPersistenceConfiguration(LDAP_PROPERTIES_FILE);
 			log.debug("PERSISTANCE CONFIGURATION LOADED=======================");
 			this.confDir = confDir();
-			this.configFilePath = confDir + APPLICATION_CONFIGURATION;
+			//this.configFilePath = confDir + APPLICATION_CONFIGURATION;
 			this.saltFilePath = confDir + SALT_FILE_NAME;
 			loadCryptoConfigurationSalt();
 		} finally {
@@ -145,12 +145,13 @@ public class ConfigurationFactory {
 	}
 
 	public void create() {
-		if (!createFromLdap(true)) {
+		log.warn("Not loading oxTrust configuration from LDAP. Please fix it!!!.");
+		/*if (!createFromLdap(true)) {
 			log.error("Failed to load configuration from LDAP. Please fix it!!!.");
 			throw new ConfigurationException("Failed to load configuration from LDAP.");
 		} else {
 			log.debug("==================CONGIFURATION LOADED SUCCESSFULLY");
-		}
+		}*/
 	}
 
 	public void initTimer() {
@@ -218,16 +219,16 @@ public class ConfigurationFactory {
 			return;
 		}
 
-		final LdapOxTrustConfiguration conf = loadConfigurationFromLdap("oxRevision");
+		/*final LdapOxTrustConfiguration conf = loadConfigurationFromLdap("oxRevision");
 		if (conf == null) {
 			return;
 		}
 
 		if (conf.getRevision() <= this.loadedRevision) {
 			return;
-		}
+		}*/
 
-		createFromLdap(false);
+		//createFromLdap(false);
 	}
 
 	public String confDir() {
@@ -253,7 +254,7 @@ public class ConfigurationFactory {
 		return ldapCentralConfiguration;
 	}
 
-	@Produces
+	/*@Produces
 	@ApplicationScoped
 	public AppConfiguration getAppConfiguration() {
 		return appConfiguration;
@@ -276,7 +277,7 @@ public class ConfigurationFactory {
 	public AttributeResolverConfiguration getAttributeResolverConfiguration() {
 		return attributeResolverConfiguration;
 	}
-
+*/
 	public String getCryptoConfigurationSalt() {
 		return cryptoConfigurationSalt;
 	}
@@ -285,26 +286,26 @@ public class ConfigurationFactory {
 		return this.baseConfiguration.getString("oxtrust_ConfigurationEntryDN");
 	}
 
-	private boolean createFromFile() {
+	/*private boolean createFromFile() {
 		boolean result = reloadAppConfFromFile();
 
 		return result;
-	}
+	}*/
 
-	private boolean reloadAppConfFromFile() {
+	/*private boolean reloadAppConfFromFile() {
 		final AppConfiguration appConfiguration = loadAppConfFromFile();
 		if (appConfiguration != null) {
 			log.info("Reloaded application configuration from file: " + configFilePath);
-			this.appConfiguration = appConfiguration;
+			//this.appConfiguration = appConfiguration;
 			return true;
 		} else {
 			log.error("Failed to load application configuration from file: " + configFilePath);
 		}
 
 		return false;
-	}
+	}*/
 
-	private AppConfiguration loadAppConfFromFile() {
+	/*private AppConfiguration loadAppConfFromFile() {
 		try {
 			String jsonConfig = FileUtils.readFileToString(new File(configFilePath), "UTF-8");
 			AppConfiguration appConfiguration = jsonService.jsonToObject(jsonConfig, AppConfiguration.class);
@@ -315,7 +316,7 @@ public class ConfigurationFactory {
 		}
 
 		return null;
-	}
+	}*/
 
 	private void loadBaseConfiguration() {
 		this.baseConfiguration = createFileConfiguration(BASE_PROPERTIES_FILE, true);
@@ -350,7 +351,7 @@ public class ConfigurationFactory {
 		return null;
 	}
 
-	private boolean createFromLdap(boolean recoverFromFiles) {
+	/*private boolean createFromLdap(boolean recoverFromFiles) {
 		log.info("Loading configuration from '{}' DB...", baseConfiguration.getString("persistence.type"));
 		try {
 			final LdapOxTrustConfiguration conf = loadConfigurationFromLdap();
@@ -383,18 +384,18 @@ public class ConfigurationFactory {
 		}
 
 		return false;
-	}
+	}*/
 
 	public void destroy(Class<? extends Configuration> clazz) {
 		Instance<? extends Configuration> confInstance = configurationInstance.select(clazz);
 		configurationInstance.destroy(confInstance.get());
 	}
 
-	public LdapOxTrustConfiguration loadConfigurationFromLdap(String... returnAttributes) {
+	/*public LdapOxTrustConfiguration loadConfigurationFromLdap(String... returnAttributes) {
 		final PersistenceEntryManager persistenceEntryManager = persistenceEntryManagerInstance.get();
 		final String configurationDn = getConfigurationDn();
 		try {
-			final LdapOxTrustConfiguration conf = persistenceEntryManager.find(configurationDn,
+		final LdapOxTrustConfiguration conf = persistenceEntryManager.find(configurationDn,
 					LdapOxTrustConfiguration.class, returnAttributes);
 
 			return conf;
@@ -402,14 +403,14 @@ public class ConfigurationFactory {
 			log.error("Failed to load configuration from LDAP", ex);
 		}
 		return null;
-	}
+	}*/
 
-	private void init(LdapOxTrustConfiguration conf) {
+	/*private void init(LdapOxTrustConfiguration conf) {
 		this.appConfiguration = conf.getApplication();
 		this.cacheRefreshConfiguration = conf.getCacheRefresh();
 		this.importPersonConfig = conf.getImportPersonConfig();
 		this.attributeResolverConfiguration = conf.getAttributeResolverConfig();
 		this.loadedRevision = conf.getRevision();
-	}
+	}*/
 
 }
