@@ -12,14 +12,14 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.eclipse.microprofile.config.ConfigProvider;
-import org.gluu.configuration.ConfigurationFactory;
+
 import org.gluu.exception.OxIntializationException;
 import org.gluu.oxtrust.service.ApplicationFactory;
 import org.gluu.oxtrust.service.EncryptionService;
 import org.gluu.oxtrust.service.cdi.event.CentralLdap;
 import org.gluu.oxtrust.service.custom.LdapCentralConfigurationReload;
 import org.gluu.persist.PersistenceEntryManager;
+import org.gluu.persist.ldap.impl.LdapEntryManager;
 import org.gluu.persist.model.PersistenceConfiguration;
 import org.gluu.service.cdi.event.LdapConfigurationReload;
 import org.gluu.service.cdi.util.CdiUtil;
@@ -30,38 +30,42 @@ import org.gluu.util.security.StringEncrypter;
 import org.gluu.util.security.StringEncrypter.EncryptionException;
 import org.slf4j.Logger;
 
-import io.quarkus.arc.AlternativePriority;
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
 
+import org.gluu.oxtrust.config.ConfigurationFactory;
+
+import org.eclipse.microprofile.config.ConfigProvider;
+
 @ApplicationScoped
+@Named
 public class AppInitializer {
 
 	@Inject
-	Logger log;
+	private Logger log;
 
 	@Inject
 	@Named(ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME)
-	Instance<PersistenceEntryManager> persistenceEntryManagerInstance;
+	private Instance<PersistenceEntryManager> persistenceEntryManagerInstance;
 
 	@Inject
 	@Named(ApplicationFactory.PERSISTENCE_METRIC_ENTRY_MANAGER_NAME)
 	@ReportMetric
-	Instance<PersistenceEntryManager> persistenceMetricEntryManagerInstance;
+	private Instance<PersistenceEntryManager> persistenceMetricEntryManagerInstance;
 
 	@Inject
 	@Named(ApplicationFactory.PERSISTENCE_CENTRAL_ENTRY_MANAGER_NAME)
 	@CentralLdap
-	Instance<PersistenceEntryManager> persistenceCentralEntryManagerInstance;
+	private Instance<PersistenceEntryManager> persistenceCentralEntryManagerInstance;
 
 	@Inject
-	Instance<EncryptionService> encryptionServiceInstance;
+	private Instance<EncryptionService> encryptionServiceInstance;
 
 	@Inject
-	ApplicationFactory applicationFactory;
+	private ApplicationFactory applicationFactory;
 
 	@Inject
-	ConfigurationFactory configurationFactory;
+	private ConfigurationFactory configurationFactory;
 
 	@Inject
 	BeanManager beanManager;
@@ -70,8 +74,10 @@ public class AppInitializer {
 
 	@PostConstruct
 	public void createApplicationComponents() {
+      
 		baseDir = ConfigProvider.getConfig().getValue("gluu.base", String.class);
 		System.setProperty("gluu.base", baseDir);
+      
 	}
 
 	protected Properties preparePersistanceProperties() {
@@ -103,6 +109,21 @@ public class AppInitializer {
 
 	@Produces
 	@ApplicationScoped
+	@Named(ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME)
+	public PersistenceEntryManager createPersistenceEntryManager() {
+		Properties connectionProperties = preparePersistanceProperties();
+
+		PersistenceEntryManager persistenceEntryManager = applicationFactory.getPersistenceEntryManagerFactory()
+				.createEntryManager(connectionProperties);
+		log.info("Created {}: {} with operation service: {}",
+				new Object[] { ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME, persistenceEntryManager,
+						persistenceEntryManager.getOperationService() });
+
+		return persistenceEntryManager;
+	}
+
+	@Produces
+	@ApplicationScoped
 	@Named(ApplicationFactory.PERSISTENCE_METRIC_ENTRY_MANAGER_NAME)
 	@ReportMetric
 	public PersistenceEntryManager createMetricPersistenceEntryManager() {
@@ -116,9 +137,32 @@ public class AppInitializer {
 		return persistenceEntryManager;
 	}
 
+	@Produces
+	@ApplicationScoped
+	@Named(ApplicationFactory.PERSISTENCE_CENTRAL_ENTRY_MANAGER_NAME)
+	@CentralLdap
+	public PersistenceEntryManager createCentralLdapEntryManager() {
+		if (!((configurationFactory.getLdapCentralConfiguration() != null)
+				&& configurationFactory.getAppConfiguration().isUpdateStatus())) {
+			return new LdapEntryManager();
+		}
+		FileConfiguration ldapCentralConfig = configurationFactory.getLdapCentralConfiguration();
+		Properties centralConnectionProperties = (Properties) ldapCentralConfig.getProperties();
+		EncryptionService securityService = encryptionServiceInstance.get();
+		Properties decryptedCentralConnectionProperties = securityService
+				.decryptProperties(centralConnectionProperties);
+		PersistenceEntryManager centralLdapEntryManager = applicationFactory.getPersistenceEntryManagerFactory()
+				.createEntryManager(decryptedCentralConnectionProperties);
+		log.info("Created {}: {}", new Object[] { ApplicationFactory.PERSISTENCE_CENTRAL_ENTRY_MANAGER_NAME,
+				centralLdapEntryManager.getOperationService() });
+		return centralLdapEntryManager;
+	}
+
 	public void recreatePersistanceEntryManager(@Observes @LdapConfigurationReload String event) {
 		recreatePersistanceEntryManagerImpl(persistenceEntryManagerInstance,
 				ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME);
+		recreatePersistanceEntryManagerImpl(persistenceEntryManagerInstance,
+				ApplicationFactory.PERSISTENCE_METRIC_ENTRY_MANAGER_NAME, ReportMetric.Literal.INSTANCE);
 	}
 
 	protected void recreatePersistanceEntryManagerImpl(Instance<PersistenceEntryManager> instance,
@@ -154,7 +198,7 @@ public class AppInitializer {
 		}
 	}
 
-	@Produces
+	/*@Produces
 	@ApplicationScoped
 	@AlternativePriority(value = 1)
 	@Named(ApplicationFactory.PERSISTENCE_ENTRY_MANAGER_NAME)
@@ -168,7 +212,7 @@ public class AppInitializer {
 
 		return persistenceEntryManager;
 	}
-
+*/
 	@Produces
 	@ApplicationScoped
 	public StringEncrypter getStringEncrypter() throws OxIntializationException {
