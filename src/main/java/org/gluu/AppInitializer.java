@@ -17,6 +17,7 @@ import org.gluu.exception.OxIntializationException;
 import org.gluu.oxtrust.service.ApplicationFactory;
 import org.gluu.oxtrust.service.EncryptionService;
 import org.gluu.oxtrust.service.cdi.event.CentralLdap;
+import org.gluu.oxtrust.config.ConfigurationFactory;
 import org.gluu.oxtrust.service.custom.LdapCentralConfigurationReload;
 import org.gluu.persist.PersistenceEntryManager;
 import org.gluu.persist.ldap.impl.LdapEntryManager;
@@ -32,8 +33,6 @@ import org.slf4j.Logger;
 
 import io.quarkus.runtime.ShutdownEvent;
 import io.quarkus.runtime.StartupEvent;
-
-import org.gluu.oxtrust.config.ConfigurationFactory;
 
 import org.eclipse.microprofile.config.ConfigProvider;
 
